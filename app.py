@@ -43,7 +43,7 @@ api_key = st.text_input(label='Enter your OpenAI API Key', type='password')
 if api_key:
     # If API key is entered, initialize the OpenAI client and proceed with app functionality
     client = OpenAI(api_key=api_key)
-    assistant_id = 'asst_konaahsahZ0UhK82guGBvn6m'
+    assistant_id = 'asst_SoUAlPBIF3KomZqPaqkEPgio'
 
     # File Handling Section
     files_info = check_and_upload_files(client, assistant_id)
