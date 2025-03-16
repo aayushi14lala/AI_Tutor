@@ -1,14 +1,14 @@
-
 import io
+import html
 from datetime import datetime
-import markdown2  # assuming markdown2 is installed
+import markdown2  # Ensure markdown2 is installed
 
 def generate_html(messages):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     chat_content = ""
     interaction_count = 0
-    user_emoji = "User"  # Emoji for user
-    assistant_emoji = "AI-Tutor"  # Emoji for assistant
+    user_emoji = "👨🏻‍🎓 User"  # Emoji for user
+    assistant_emoji = "🤖 AI-Tutor"  # Emoji for assistant
 
     for message in messages:
         role_class = 'user' if message['role'] == 'user' else 'assistant'
@@ -16,53 +16,71 @@ def generate_html(messages):
         if role_class == 'user':
             interaction_count += 1
         
-        formatted_content = markdown2.markdown(message['content']).replace('\\n', '<br>')
-        chat_content += f"<div class='message {role_class}'><span class='emoji'>{emoji}</span>{formatted_content}</div>"
+        safe_content = html.escape(message['content'])  # Prevents HTML injection
+        formatted_content = markdown2.markdown(safe_content)
+
+        chat_content += f"""
+        <div class='message {role_class}'>
+            <span class='emoji'>{emoji}</span> {formatted_content}
+        </div>
+        """
 
     html_content = f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>EduMentor Chat History</title>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
         <style>
+        body {{
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }}
         .container {{
             margin-top: 20px;
             background: white;
-            border-radius: 0.25rem;
-            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
         }}
         .header {{
-            background-color: #30694b; /* A deep, elegant shade of green */
+            background-color: #30694b; /* A deep green */
             color: white;
             padding: 1rem;
             text-align: center;
+            border-radius: 10px 10px 0 0;
         }}
         .message {{
-            padding: 0.5rem 1rem;
-            margin-bottom: 0.5rem;
-            border-radius: 10px;
-            color: #000080; /* Navy */
+            padding: 10px 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            color: #000080;
+            word-wrap: break-word;
         }}
         .user {{
-            background-color: #e8f5e9; /* Light Emerald Green */
-            align-self: flex-start;
+            background-color: #e8f5e9;
             text-align: left;
+            border-left: 5px solid #2e7d32;
         }}
         .assistant {{
             background-color: #d4edda;
+            text-align: left;
+            border-left: 5px solid #218838;
         }}
         .footer {{
-            background-color: #30694b; /* A deep, elegant shade of green */
+            background-color: #30694b;
             color: white;
             padding: 1rem;
             text-align: center;
+            border-radius: 0 0 10px 10px;
         }}
         .timestamp, .interaction-count {{
             font-size: 0.875rem;
             color: #6c757d;
             text-align: center;
-            padding: 0.5rem 0;
+            margin-top: 10px;
         }}
         .emoji {{
             font-size: 1.2em;
