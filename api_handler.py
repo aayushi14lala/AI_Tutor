@@ -1,54 +1,60 @@
 from openai import OpenAI
 import time
 
+def send_query_get_response(client, user_question, assistant_id, include_similarity_search=True):
+    try:
+        # Create a new thread
+        thread = client.beta.threads.create()
+        thread_id = thread.id
 
-def send_query_get_response(client,user_question,assistant_id):
-    # Create a new thread for the query
-    thread = client.beta.threads.create()
-    thread_id = thread.id
+        # Optionally modify the query for similarity search
+        if include_similarity_search:
+            user_question += (' and tell me which file are the top results based on your similarity search '
+                              '(an example can be: you can refer to the course material titled '
+                              '"Present Value Relations" in the file "Lec 2-3.pdf" under slides 20-34.)')
 
-    user_question=user_question+ ' and tell me which file are the top results based on your similarity search (an example of can be you can refer to the course material titled "Present Value Relations" in the file "Lec 2-3.pdf" under slides 20-34.)'
+        # Send the user's question
+        client.beta.threads.messages.create(
+            thread_id=thread_id,
+            role="user",
+            content=user_question,
+        )
 
-    # Send the user's question to the thread
-    client.beta.threads.messages.create(
-        thread_id=thread_id,
-        role="user",
-        content=user_question,
-    )
+        # Create and start the run
+        run = client.beta.threads.runs.create(
+            thread_id=thread_id,
+            assistant_id=assistant_id,
+        )
 
-    # Create and start a run for the thread
-    run = client.beta.threads.runs.create(
-        thread_id=thread_id,
-        assistant_id=assistant_id,
-    )
+        # Initialize timer
+        start_time = time.time()
+        timeout = 60  # seconds
+        interval = 2  # seconds (to avoid excessive API calls)
 
-    # Initialize a timer to limit the response wait time
-    start_time = time.time()
+        # Wait for completion
+        while True:
+            run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+            
+            if run.status == 'completed':
+                break
+            elif time.time() - start_time > timeout:
+                print("Timeout: The response took too long.")
+                return "Server response timeout. Please try again later."
+            
+            time.sleep(interval)
 
-    # Continuously check the run status
-    run_status = None
-    while run_status != 'completed':
-        run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
-        run_status = run.status
+        # Fetch messages (ensure messages exist)
+        messages = client.beta.threads.messages.list(thread_id=thread_id, order='asc')
+        if not messages.data:
+            return "Server issue, try again."
 
-        # Time check to break the loop if it runs more than 60 seconds
-        if time.time() - start_time > 60:
-            print("Final run status:", run_status)
-            print("Took too long time")
-            break
+        # Extract response safely
+        last_message = messages.data[-1]
+        if hasattr(last_message, 'content') and last_message.content:
+            response = last_message.content[0].text.value
+            return response
 
-    # Fetch and print the entire conversation history
-    messages = client.beta.threads.messages.list(
-        thread_id=thread_id,
-        order='asc'
-    )
-
-    # Return the last response from the thread
-    message=messages.data[-1]
-    message_content=message.content[0].text
-    response=message_content.value
-
-    return response if messages.data else "Server issue, try again"
-
-
-
+        return "Unexpected response format. Please try again."
+    
+    except Exception as e:
+        return f"Error occurred: {str(e)}"
