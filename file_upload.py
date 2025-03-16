@@ -29,9 +29,14 @@ def attach_files_to_assistant(client, file_ids, assistant_id):
 
 
 def check_and_upload_files(client, assistant_id):
-    
-    assistant_files = client.beta.assistants.files.list(assistant_id=assistant_id)
-    files_info = [file.id for file in assistant_files.data]
+    # Retrieve assistant details to get the list of attached files
+    try:
+        assistant = client.beta.assistants.retrieve(assistant_id)
+        files_info = assistant.file_ids if hasattr(assistant, "file_ids") else []
+    except Exception as e:
+        st.error(f"Error retrieving assistant files: {e}")
+        files_info = []
+
     if not files_info:
         st.warning("No Files Included, Upload Educational Material")
         uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=True)
@@ -39,7 +44,7 @@ def check_and_upload_files(client, assistant_id):
         if st.button("Upload and Attach Files"):
             if uploaded_files:
                 try:
-                    file_ids ,file_paths= upload_files_to_assistant(client, uploaded_files)
+                    file_ids, file_paths = upload_files_to_assistant(client, uploaded_files)
                     
                     attached_files_info = attach_files_to_assistant(client, file_ids, assistant_id)
 
